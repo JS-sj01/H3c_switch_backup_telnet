@@ -1,0 +1,43 @@
+# @Date: 2023/02/16
+# @Author: Su
+# @File: Backup-h3c.py
+
+import paramiko
+import xlrd
+import time,re,os
+from datetime import datetime
+
+
+workbook=xlrd.open_workbook('h3c.xlsx')
+
+sheetnames = workbook.sheet_names()
+print(sheetnames)
+sheet=workbook.sheet_by_name(sheetnames[0])
+print(sheet.nrows,sheet.ncols)
+
+for a in range(1,sheet.nrows):
+    info = sheet.row_values(a)
+    host = str(info[0])
+    ip = str(info[1])
+    username = str(info[2])
+    password = str(info[3])
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh_client.connect(hostname=ip,username=username,password=password)
+    command = ssh_client.invoke_shell()
+    #command.send('>'.encode('utf-8'))
+    command.send('screen-length disable'.encode('utf-8')  + b'\n')
+    command.send('system-view'.encode('utf-8') + b'\n')
+    command.send('dis cur'.encode('utf-8') + b'\n')
+    #tn.read_until('>'.encode('utf-8'))
+    #tn.write('screen-length disable'.encode('utf-8')  + b'\n')
+    #tn.write('system-view'.encode('utf-8') + b'\n')
+    #tn.write('dis cur'.encode('utf-8') + b'\n')
+    time.sleep(20)
+    conf = command.recv(655355).decode("utf-8","ignore")
+    now = datetime.now()
+    backup = open(r"/root/h3c/"+str(now.year)+"-"+str(now.month)+"-"+str(now.day)+"-"+host+"-"+ip+".txt","a+")
+    backup.write(conf)
+    backup.close()
+
+ssh_client.close()
